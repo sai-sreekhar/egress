@@ -19,6 +19,9 @@ import (
 	"encoding/json"
 	"sync"
 	"time"
+
+	// Added by Sai Sreekar - Import types package for track event types.
+	"github.com/livekit/egress/pkg/types"
 )
 
 type Manifest struct {
@@ -39,6 +42,10 @@ type Manifest struct {
 	Files     []*File     `json:"files,omitempty"`
 	Playlists []*Playlist `json:"playlists,omitempty"`
 	Images    []*Image    `json:"images,omitempty"`
+
+	// Added by Sai Sreekar - Track events log to manifest.
+	// Map of TrackID -> List of events for tracking state transitions.
+	TrackEvents map[string][]*TrackEventLog `json:"track_events,omitempty"`
 }
 
 type File struct {
@@ -61,6 +68,13 @@ type Image struct {
 	Filename  string    `json:"filename,omitempty"`
 	Timestamp time.Time `json:"timestamp,omitempty"`
 	Location  string    `json:"location,omitempty"`
+}
+
+// Added by Sai Sreekar - Structure to represent a track event log entry.
+type TrackEventLog struct {
+	Timestamp int64           `json:"timestamp"`  // Timestamp of the event.
+	Event     types.EventType `json:"event_type"` // Event type (e.g., muted, unmuted).
+	Details   string          `json:"details"`    // Optional additional details.
 }
 
 func (p *PipelineConfig) initManifest() {
@@ -154,4 +168,24 @@ func (m *Manifest) Close(endedAt int64) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+// Added by Sai Sreekar - Function to log track events in the manifest.
+// Allows adding new events for a specific TrackID.
+func (m *Manifest) AddTrackEvent(trackID string, eventType types.EventType, details string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.TrackEvents == nil {
+		m.TrackEvents = make(map[string][]*TrackEventLog) // Initialize map if nil.
+	}
+
+	eventLog := &TrackEventLog{
+		Timestamp: time.Now().UnixNano(),
+		Event:     eventType,
+		Details:   details,
+	}
+
+	// Append the new event to the list for the given TrackID.
+	m.TrackEvents[trackID] = append(m.TrackEvents[trackID], eventLog)
 }

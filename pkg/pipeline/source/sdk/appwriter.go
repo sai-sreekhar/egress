@@ -46,6 +46,9 @@ const (
 )
 
 type AppWriter struct {
+	// Modified by Sai Sreekar
+	// Added PipelineConfig to AppWriter for better access to pipeline settings and manifest.
+	*config.PipelineConfig
 	logger    logger.Logger
 	logFile   *os.File
 	pub       lksdk.TrackPublication
@@ -73,7 +76,10 @@ type AppWriter struct {
 	finished  core.Fuse
 }
 
+// Modified by Sai Sreekar
+// Modified NewAppWriter to include PipelineConfig.
 func NewAppWriter(
+	p *config.PipelineConfig, //included PipelineConfig
 	track *webrtc.TrackRemote,
 	pub lksdk.TrackPublication,
 	rp *lksdk.RemoteParticipant,
@@ -83,6 +89,7 @@ func NewAppWriter(
 	logFilename string,
 ) (*AppWriter, error) {
 	w := &AppWriter{
+		PipelineConfig:    p, // Added PipelineConfig
 		logger:            logger.GetLogger().WithValues("trackID", track.ID(), "kind", track.Kind().String()),
 		track:             track,
 		pub:               pub,
@@ -178,6 +185,8 @@ func (w *AppWriter) start() {
 	w.finished.Break()
 }
 
+// Modified by Sai Sreekar
+// Updated readNext to log EventInactive when the track becomes inactive.
 func (w *AppWriter) readNext() {
 	_ = w.track.SetReadDeadline(time.Now().Add(time.Millisecond * 500))
 	pkt, _, err := w.track.ReadRTP()
@@ -197,6 +206,11 @@ func (w *AppWriter) readNext() {
 			if w.pub.IsMuted() || time.Since(timeout) > latency {
 				// set track inactive
 				w.logger.Debugw("track inactive", "timestamp", time.Since(w.startTime))
+
+				// Added by Sai Sreekar
+				// Log an EventInactive in the manifest when the track becomes inactive.
+				w.PipelineConfig.Manifest.AddTrackEvent(w.track.ID(), types.EventInactive, "Track became inactive")
+
 				w.active.Store(false)
 				w.callbacks.OnTrackMuted(w.track.ID())
 			}
@@ -219,6 +233,11 @@ func (w *AppWriter) readNext() {
 	if !w.active.Swap(true) {
 		// set track active
 		w.logger.Debugw("track active", "timestamp", time.Since(w.startTime))
+
+		// Added by Sai Sreekar
+		// Log an EventActive in the manifest when the track becomes active again.
+		w.PipelineConfig.Manifest.AddTrackEvent(w.track.ID(), types.EventActive, "Track became active")
+
 		w.callbacks.OnTrackUnmuted(w.track.ID())
 		if w.sendPLI != nil {
 			w.sendPLI()

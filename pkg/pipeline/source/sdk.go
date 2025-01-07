@@ -540,6 +540,8 @@ func (s *SDKSource) onTrackSubscribed(track *webrtc.TrackRemote, pub *lksdk.Remo
 	}
 }
 
+// Modified by Sai Sreekar
+// Updated createWriter to include PipelineConfig for enhanced configuration handling.
 func (s *SDKSource) createWriter(
 	track *webrtc.TrackRemote,
 	pub lksdk.TrackPublication,
@@ -557,7 +559,9 @@ func (s *SDKSource) createWriter(
 	}
 
 	ts.AppSrc = app.SrcFromElement(src)
-	writer, err := sdk.NewAppWriter(track, pub, rp, ts, s.sync, s.callbacks, logFilename)
+	// Modified Added by Sai Sreekar
+	// Added the pipeline config param to pass to new app writer for better handling of configuration and events.
+	writer, err := sdk.NewAppWriter(s.PipelineConfig, track, pub, rp, ts, s.sync, s.callbacks, logFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -610,6 +614,9 @@ func (s *SDKSource) onTrackMuted(pub lksdk.TrackPublication, _ lksdk.Participant
 	s.mu.RUnlock()
 	if ok {
 		logger.Debugw("track muted", "trackID", pub.SID())
+		// Added by Sai Sreekar
+		// Writing the mute event to the manifest for tracking purposes
+		s.PipelineConfig.Manifest.AddTrackEvent(pub.SID(), types.EventMuted, "Track was muted by user or system")
 	}
 }
 
@@ -619,6 +626,9 @@ func (s *SDKSource) onTrackUnmuted(pub lksdk.TrackPublication, _ lksdk.Participa
 	s.mu.RUnlock()
 	if ok {
 		logger.Debugw("track unmuted", "trackID", pub.SID())
+		// Added by Sai Sreekar
+		// Writing the unmute event to the manifest for tracking purposes
+		s.PipelineConfig.Manifest.AddTrackEvent(pub.SID(), types.EventUnmuted, "Track was unmuted by user or system")
 	}
 }
 

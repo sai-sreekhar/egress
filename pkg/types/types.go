@@ -22,6 +22,16 @@ type Profile string
 type OutputType string
 type FileExtension string
 
+// Added by Sai Sreekar - Track event types for better egress tracking and state management.
+type EventType string
+
+const (
+	EventMuted    EventType = "muted"
+	EventUnmuted  EventType = "unmuted"
+	EventActive   EventType = "active"
+	EventInactive EventType = "inactive"
+)
+
 const (
 	// request types
 	RequestTypeRoomComposite  = "room_composite"
