@@ -128,13 +128,16 @@ func (m *Monitor) validateCPUConfig() error {
 		return errors.New("not enough cpu")
 	}
 
-	if m.cpuStats.NumCPU() < requirements[len(requirements)-1] {
-		logger.Errorw("not enough cpu for some egress types", nil,
-			"minimumCpu", requirements[len(requirements)-1],
-			"recommended", recommendedMinimum,
-			"available", m.cpuStats.NumCPU(),
-		)
-	}
+	// Modified by Sai Sreekar
+	// We are using only track egress so no need to check for the maximal requirements
+
+	// if m.cpuStats.NumCPU() < requirements[len(requirements)-1] {
+	// 	logger.Errorw("not enough cpu for some egress types", nil,
+	// 		"minimumCpu", requirements[len(requirements)-1],
+	// 		"recommended", recommendedMinimum,
+	// 		"available", m.cpuStats.NumCPU(),
+	// 	)
+	// }
 
 	logger.Infow(fmt.Sprintf("cpu available: %f max cost: %f", m.cpuStats.NumCPU(), requirements[len(requirements)-1]))
 
